@@ -1,0 +1,411 @@
+---
+title: 'Association Between Food Insecurity and Diabetes Prevalence Among U.S. Adults:
+  Analysis of BRFSS 2022 Data'
+author: "Greeshma Korupolu"
+date: "2026-05-07"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+
+
+
+
+# Introduction
+
+Food insecurity is a major social determinant of health that affects access to nutritious food, chronic disease management, and overall health outcomes. Limited access to healthy foods may contribute to poor dietary habits, obesity, chronic stress, and reduced access to healthcare resources. Diabetes remains one of the most prevalent chronic diseases in the United States and is associated with substantial morbidity, mortality, and healthcare costs.
+
+Previous studies have shown that food insecurity is associated with increased risk of chronic disease, including diabetes and poor glycemic control. However, many studies have focused on limited populations or have not simultaneously accounted for multiple socioeconomic and demographic variables. This study expands upon prior research by examining the association between food insecurity and diabetes prevalence while controlling for additional social determinants of health including income, education, employment, age, sex, body mass index (BMI), and smoking status.
+
+# Research Question
+
+Is food insecurity associated with diabetes prevalence among U.S. adults after adjusting for demographic, socioeconomic, and behavioral factors?
+
+# Data and Methods
+
+## Data Source
+
+Data for this analysis were obtained from the 2022 Behavioral Risk Factor Surveillance System (BRFSS), a nationally representative survey conducted by the Centers for Disease Control and Prevention (CDC). The BRFSS collects information regarding health behaviors, chronic diseases, and social determinants of health among U.S. adults.
+
+The final analytic dataset included 187,242 observations. Approximately 14.4% of participants reported having diabetes.
+
+```{r, include=FALSE}
+library(haven)
+library(dplyr)
+library(ggplot2)
+library(pscl)
+```
+
+```{r, include=FALSE}
+library(haven)
+
+# Assign the data to 'brfss' instead of 'data'
+brfss <- read_xpt("C:/Users/reddy/Downloads/LLCP2022XPT/LLCP2022.XPT")
+```
+
+## Study Variables
+
+### Outcome Variable
+
+The primary outcome variable was diabetes status.
+
+### Primary Independent Variable
+
+The primary independent variable was food security status.
+
+### Covariates
+
+Additional covariates included:
+
+ - Sex
+ - Age group
+ - Body mass index (BMI)
+ - Smoking status
+ - Income
+ - Education
+ - Employment status
+
+```{r, echo=FALSE}
+# Select variables used for analysis
+brfss_clean <- brfss %>%
+  select(
+    DIABETE4,
+    SDHFOOD1,
+    INCOME3,
+    EDUCA,
+    EMPLOY1,
+    `_AGEG5YR`,
+    `_SEX`,
+    `_BMI5CAT`,
+    `_RFSMOK3`
+  ) %>%
+  
+# Remove invalid and missing responses
+  filter(
+    DIABETE4 %in% c(1, 3),
+    SDHFOOD1 %in% c(1, 2, 3, 4, 5),
+    INCOME3 %in% c(1:11),
+    EDUCA %in% c(1:6),
+    EMPLOY1 %in% c(1:8),
+    `_SEX` %in% c(1, 2),
+    `_BMI5CAT` %in% c(1:4),
+    `_RFSMOK3` %in% c(1, 2)
+  ) %>%
+  
+# Create analysis variables
+  mutate(
+    
+    diabetes = ifelse(DIABETE4 == 1, 1, 0),
+    
+    food_security = factor(
+      SDHFOOD1,
+      levels = c(1, 2, 3, 4, 5),
+      labels = c(  
+        "Always Food Insecure",
+        "Usually Food Insecure",
+        "Sometimes Food Insecure",
+        "Rarely Food Insecure",
+        "Food Secure"
+      )
+    ),
+    
+    sex = factor(
+      `_SEX`,
+      labels = c("Male", "Female")
+    ),
+    
+    bmi = factor(
+      `_BMI5CAT`,
+      levels = c(1, 2, 3, 4),
+      labels = c(
+        "Underweight",
+        "Normal Weight",
+        "Overweight",
+        "Obese"
+      )
+    ),
+    
+    smoker = factor(
+      `_RFSMOK3`,
+      labels = c("Non-Smoker", "Smoker")
+    ),
+    
+    education = factor(
+      EDUCA,
+      levels = c(1, 2, 3, 4, 5, 6),
+      labels = c(
+        "Never Attended School",
+        "Elementary",
+        "Some High School",
+        "High School Graduate",
+        "Some College",
+        "College Graduate"
+      )
+    ),
+    
+    income = factor(INCOME3),
+    employment = factor(EMPLOY1),
+    age_group = factor(`_AGEG5YR`)
+    
+  )
+```
+
+## Statistical Analysis
+
+Descriptive statistics were calculated for all study variables. Chi-square tests of independence were conducted to evaluate associations between categorical variables and diabetes prevalence.
+
+Effect size for chi-square analyses was assessed using Cramér’s V.
+
+A multivariable logistic regression model was performed to evaluate the association between food security and diabetes prevalence while adjusting for demographic, socioeconomic, and behavioral covariates.
+
+Odds ratios (ORs) and 95% confidence intervals (CIs) were calculated to aid interpretation of logistic regression coefficients.
+
+Model diagnostics included:
+ - McFadden pseudo R^2
+ - Variance inflation factors (VIFs)
+ - Hosmer-Lemeshow goodness-of-fit testing
+
+```{r, include=FALSE}
+summary(brfss_clean)
+
+table(brfss_clean$diabetes)
+
+prop.table(table(brfss_clean$diabetes))
+```
+
+The final analytic dataset included 187,242 observations. Approximately 14.4% of participants reported having diabetes. The dataset included demographic, socioeconomic, behavioral, and food security variables used to evaluate factors associated with diabetes prevalence.Participants classified as food secure had significantly lower odds of diabetes compared to participants reporting severe food insecurity.
+
+# Results
+
+## Descriptive Statistics
+
+Descriptive statistics were calculated to summarize demographic, socioeconomic, and behavioral characteristics of participants by diabetes status.
+
+```{r, echo=FALSE}
+table1 <- brfss_clean %>%
+  select(
+    diabetes,
+    food_security,
+    sex,
+    bmi,
+    smoker,
+    education,
+    income,
+    employment,
+    age_group
+  ) %>%
+  mutate(
+    diabetes = factor(diabetes,
+                      labels = c("No Diabetes", "Diabetes"))
+  )
+
+food_diabetes_test <- chisq.test(
+  table(table1$food_security, table1$diabetes)
+)
+
+food_diabetes_test
+```
+
+```{r, include=FALSE}
+food_diabetes_test$expected
+```
+
+# Table 1
+
+Table 1 presents selected demographic, socioeconomic, and behavioral characteristics stratified by diabetes status among U.S. adults included in the BRFSS 2022 analytic sample.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+table1_simple <- table1 %>%
+  group_by(diabetes) %>%
+  summarise(
+    n = n(),
+    percent = round(100 * n / nrow(table1), 1),
+    obese_n = sum(bmi == "Obese"),
+    obese_percent = round(100 * mean(bmi == "Obese"), 1),
+    food_secure_n = sum(food_security == "Food Secure"),
+    food_secure_percent = round(100 * mean(food_security == "Food Secure"), 1),
+    smoker_n = sum(smoker == "Smoker"),
+    smoker_percent = round(100 * mean(smoker == "Smoker"), 1)
+  )
+
+knitr::kable(
+  table1_simple,
+  caption = "Table 1. Selected Characteristics by Diabetes Status (N = 187,242)"
+)
+```
+
+Table 1 summarizes demographic, socioeconomic, and behavioral characteristics stratified by diabetes status. Participants with diabetes demonstrated higher rates of obesity and lower levels of food security compared to participants without diabetes. Approximately 55.5% of participants with diabetes were classified as obese compared to 30.9% of participants without diabetes. Additionally, 74.9% of participants with diabetes were classified as food secure compared to 82.9% of participants without diabetes. Smoking prevalence was relatively similar between groups.
+
+## Chi-Square Analysis
+```{r, echo=FALSE}
+n <- sum(table(table1$food_security, table1$diabetes))
+
+cramers_v <- sqrt(
+  food_diabetes_test$statistic /
+    (n * (min(dim(table(table1$food_security,
+                         table1$diabetes))) - 1))
+)
+
+cramers_v
+```
+
+A chi-square test of independence was conducted to evaluate the association between food security status and diabetes prevalence. The results demonstrated a statistically significant association between food security and diabetes status, χ^2(4) = 1155.5, p < 0.001. The effect size, measured using Cramér’s V, was 0.079, indicating a small but meaningful association between food security and diabetes prevalence.
+
+## Independent Samples t-Test
+
+An independent samples t-test was conducted to compare age group differences between participants with and without diabetes. Age was selected because previous research has consistently demonstrated that diabetes prevalence increases with age.
+
+```{r, echo=FALSE}
+brfss_clean$age_numeric <- as.numeric(as.character(brfss_clean$age_group))
+
+t_test_age <- t.test(
+  age_numeric ~ diabetes,
+  data = brfss_clean
+)
+
+t_test_age
+```
+
+The independent samples t-test demonstrated a statistically significant difference in age between participants with and without diabetes (p < 0.001). Participants with diabetes were generally older compared to participants without diabetes. This finding is consistent with existing evidence demonstrating that diabetes prevalence increases with age.
+
+## Data Visualizations
+```{r, echo=FALSE}
+ggplot(brfss_clean,
+       aes(x = food_security,
+           fill = factor(diabetes))) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion of Diabetes by Food Security Status",
+    x = "Food Security Status",
+    y = "Proportion",
+    fill = "Diabetes"
+  ) +
+  theme_minimal()
+```
+
+This visualization demonstrates differences in diabetes prevalence across food security categories. Individuals with poorer food security showed higher proportions of diabetes compared to individuals reporting adequate food access.
+
+```{r, echo=FALSE}
+ggplot(brfss_clean,
+       aes(x = bmi,
+           fill = factor(diabetes))) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion of Diabetes by BMI Category",
+    x = "BMI Category",
+    y = "Proportion",
+    fill = "Diabetes"
+  ) +
+  theme_minimal()
+```
+
+The visualization indicates that diabetes prevalence increases substantially across higher BMI categories, particularly among individuals classified as obese.
+
+## Logistic Regression Results
+```{r, echo=FALSE}
+model_final <- glm(
+  diabetes ~ food_security + sex + bmi + smoker +
+    education + income + employment + age_group,
+  data = brfss_clean,
+  family = binomial
+)
+```
+
+```{r, include=FALSE}
+summary(model_final)
+```
+
+A multivariable logistic regression model was conducted to examine the association between food security and diabetes status while adjusting for sex, BMI category, smoking status, education, income, employment, and age group.
+
+Participants reporting greater food security had significantly lower odds of diabetes compared to the reference category. Individuals classified as food secure had 36% lower odds of diabetes (OR = 0.64, 95% CI: 0.59–0.70).
+
+Obesity was strongly associated with diabetes, with obese individuals having over five times the odds of diabetes compared to underweight individuals (OR = 5.31, 95% CI: 4.54–6.26).
+
+Female participants had lower odds of diabetes compared to males (OR = 0.74, 95% CI: 0.72–0.76).
+
+Increasing age categories were associated with progressively greater odds of diabetes, demonstrating a strong age-related trend in diabetes prevalence.
+
+## Model Diagnostics
+```{r, include=FALSE}
+exp(coef(model_final))
+
+exp(confint(model_final))
+```
+
+Odds ratios and 95% confidence intervals were calculated to improve interpretation of the logistic regression coefficients. Higher income and higher educational attainment were consistently associated with reduced odds of diabetes. Increasing age categories were associated with progressively greater odds of diabetes, demonstrating a strong age-related trend in diabetes prevalence.
+
+Individuals reporting better food security generally had lower odds of diabetes compared to individuals reporting severe food insecurity. Females had lower odds of diabetes compared to males. Higher BMI categories were strongly associated with increased odds of diabetes, with obese individuals having substantially higher odds of diabetes compared to underweight individuals.
+
+
+```{r, include=FALSE}
+pR2(model_final)
+```
+Model fit statistics demonstrated acceptable explanatory performance. The McFadden pseudo R^2 value was 0.152, indicating that the model provided a reasonable improvement in fit over the null model for predicting diabetes status.
+
+```{r, include=FALSE}
+# This code calculates variance inflation factors without using the car package.
+model_matrix <- model.matrix(model_final)[, -1]
+
+vif_values <- sapply(1:ncol(model_matrix), function(i) {
+  r_squared <- summary(
+    lm(model_matrix[, i] ~ model_matrix[, -i])
+  )$r.squared
+  
+  1 / (1 - r_squared)
+})
+
+vif_table <- data.frame(
+  Variable = colnames(model_matrix),
+  VIF = round(vif_values, 3)
+)
+
+vif_table
+```
+
+Variance inflation factors (VIFs) were evaluated to assess multicollinearity among predictors. Most variables demonstrated acceptable VIF values below commonly accepted thresholds. Higher VIF values observed for certain education and BMI categories were expected due to the inclusion of multiple dummy-coded categorical variables. Overall, multicollinearity was not considered severe enough to invalidate model interpretation.
+
+
+```{r, include=FALSE}
+hoslem.test(
+  brfss_clean$diabetes,
+  fitted(model_final)
+)
+```
+The Hosmer-Lemeshow goodness-of-fit test was statistically significant (p < 0.001), suggesting some deviation between observed and predicted probabilities. However, given the extremely large BRFSS sample size, minor deviations are likely to produce statistically significant results. Additional diagnostics and overall model stability suggested acceptable model performance.
+
+# Discussion
+
+This study identified a significant association between food insecurity and diabetes prevalence among U.S. adults. Individuals experiencing greater food insecurity demonstrated higher odds of diabetes, even after adjusting for demographic, socioeconomic, and behavioral factors.
+
+These findings are consistent with prior literature demonstrating relationships between food insecurity, poor dietary quality, chronic stress, obesity, and chronic disease outcomes. Food insecurity may contribute to diabetes risk through reduced access to healthy foods, inconsistent meal patterns, and financial barriers to preventive healthcare.
+
+BMI and age demonstrated particularly strong associations with diabetes prevalence, consistent with established epidemiologic evidence regarding obesity and aging as major diabetes risk factors. Higher income and educational attainment were associated with lower odds of diabetes, further supporting the importance of social determinants of health in chronic disease prevention.
+
+The findings from this study support the need for public health interventions and policy initiatives focused on improving food access and reducing socioeconomic disparities associated with diabetes outcomes.
+
+# Limitations
+
+Several limitations should be considered when interpreting these findings. First, the BRFSS dataset is cross-sectional, which limits the ability to establish causality between food insecurity and diabetes prevalence. Second, BRFSS data are self-reported and may be subject to recall bias or reporting bias. Also, because BRFSS uses survey sampling methods, the findings may not fully capture all subpopulations equally. Finally, although multiple covariates were included, residual confounding may still be present.
+
+# Conclusion
+
+Food insecurity was significantly associated with higher diabetes prevalence among U.S. adults, even after adjusting for demographic, socioeconomic, and behavioral covariates.
+
+Additional variables including BMI, age, income, employment, and sex were also significantly associated with diabetes prevalence. These findings highlight the importance of addressing social determinants of health in diabetes prevention and management strategies.
+
+The results support the need for public health interventions and policy initiatives that improve food access and reduce socioeconomic disparities associated with chronic disease outcomes.
+
+# References
+
+Berkowitz SA, Basu S, Meigs JB, Seligman HK. Food insecurity and health care expenditures in the United States, 2011-2013. Health Serv Res. 2018;53(3):1600-1620.
+
+Gundersen C, Ziliak JP. Food insecurity and health outcomes. Health Aff (Millwood). 2015;34(11):1830-1839.
+
+Seligman HK, Laraia BA, Kushel MB. Food insecurity is associated with chronic disease among low-income NHANES participants. J Nutr. 2010;140(2):304-310.
+
+Centers for Disease Control and Prevention. Behavioral Risk Factor Surveillance System 2022. Accessed April 2026. https://www.cdc.gov/brfss/
+
+```{r}
+```
