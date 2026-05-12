@@ -47,5 +47,4 @@ Cross sectional design prevents causal inference.
 Self reported data may include recall or reporting bias.
 BRFSS survey weighting should be considered for nationally representative inference.
 
-## Citation
-If you use this work, cite the BRFSS 2022 dataset and any supporting literature used in the analysis.
+
