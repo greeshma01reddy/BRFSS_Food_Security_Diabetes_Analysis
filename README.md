@@ -1,6 +1,6 @@
 # BRFSS_Food_Security_Diabetes_Analysis 
 
-# Association Between Food Insecurity and Diabetes Prevalence Among U.S. Adults
+# Association Between Food Insecurity and Diabetes Prevalence Among U.S. Adults 
 
 This repository contains an R Markdown analysis of BRFSS 2022 data examining whether food insecurity is associated with diabetes prevalence among U.S. adults after adjusting for demographic, socioeconomic, and behavioral factors.
 
